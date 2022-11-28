@@ -186,7 +186,7 @@ ball_setup:
 	li $t1, 0xffffff #color white for the ball
 	sw $t1, 3900($gp) #draw ball at starting location
 	addi $s3, $gp, 3900 #write ball starting location into the tracking register
-	sw $s4, -128 #Set ball default direction to straight up
+	li $s4, -128 #Set ball default direction to straight up
 	
 game_loop:
 	lw $t7, 0($s1)
