@@ -64,6 +64,7 @@ BALL:
 #s2: Stores paddle left endpoint.
 #s3: Stores ball location
 #s4: Stores ball direction. Ball only moves up or down, or 45 degrees left or right, up or down.
+#s5: Stores new ball position. Largely only used for detecting collisions.
 # These are codified in the 6 values $s4 can take on:
 # Straight up = -128
 STRAIGHT_UP:
@@ -89,7 +90,7 @@ DOWN_RIGHT:
 #t1: Stores color whenever needed to paint a pixel.
 #t2: Stores location of pixel when needed to color it.
 #t3: may be used to store location of pixel when coloring.
-#
+#t4: Stores the colour of the ball's next location
 ##############################################################################
 
 
@@ -256,7 +257,12 @@ unpause_game:
 	lw $t7, 4($s1)
 	beq $t7, 0x70, game_loop
 	j respond_to_p
-	
+
+
+
+
+
+
 collision_check:
 	beq $s4, -128, collision_check_up # handle collision check if ball is going straight up
 	beq $s4, 128, collision_check_down # handle collision check if ball is going straight down
@@ -267,34 +273,22 @@ collision_check:
 	j error # Never should be reached
 	
 collision_check_up:
-	add $t4, $s3, $s4 # Find the space the ball will be in next
-	lw $t5, 0($t4) # Load the colour of that pixel to $t5
-	beq $t5, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
+	lw $t4, 0($s5) # Load the colour of that pixel to $t5
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, 128 # Ball bounces, new direction is always straight down.
 	j update_location # Ball has bounced, now go move it
-	
-	
 
 collision_check_down:
-	add $t4, $s3, $s4 # Find the space the ball will be in next
-	lw $t5, 0($t4) # Load the colour of that pixel to $t5
-	beq $t5, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	add $s5, $s3, $s4 # Find the space the ball will be in next
+	lw $t4, 0($s5) # Load the colour of that pixel to $t5
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, -128 # Ball bounces, new direction is always straight up.
-	bne $t5, 0x10008fb8, update_location # Go update location if NOT bouncing off paddle. Paddle is special.
-	#### BEGIN PADDLE COPYPASTA CODE #### YES I KNOW THIS IS BAD PROGRAMMING
-	# Bouncing off leftmost pixel in paddle
-	li $s4, -132
-	beq $t4, $s2, update_location
-	# Bouncing off centre-left pixel in paddle
-	
-	# Bouncing off centre pixel in paddle
-	# Bouncing off centre-right pixel in paddle
-	# Bouncing off rightmost pixel in paddle
-	
-	j update_location # Ball has bounced, now go move it
+	bne $t4, 0x008000 update_location # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler
 
 collision_check_ul:
-
+	
 
 collision_check_ur:
 
@@ -305,6 +299,26 @@ collision_check_dl:
 collision_check_dr:
 
 
+paddle_handler:
+	# Bouncing off leftmost pixel in paddle
+	li $s4, -132
+	add $t3, $s2, 0 # Set $t3 to the left endpoint of paddle
+	beq $t4, $t3, update_location # Ball WILL bounce off this pixel, go update location
+	# Bouncing off centre-left pixel in paddle
+	li $s4, -132
+	add $t3, $t3, 4 # Move to next pixel in paddle to the right
+	beq $t4, $t3, update_location # Ball WILL bounce off this pixel, go update location
+	# Bouncing off centre pixel in paddle
+	li $s4, -128
+	add $t3, $t3, 4 # Move to next pixel in paddle to the right
+	beq $t4, $t3, update_location # Ball WILL bounce off this pixel, go update location
+	# Bouncing off centre-right pixel in paddle
+	li $s4, -124
+	add $t3, $t3, 4 # Move to next pixel in paddle to the right
+	beq $t4, $t3, update_location # Ball WILL bounce off this pixel, go update location
+	# Bouncing off rightmost pixel in paddle
+	li $s4, -124
+	j update_location # Ball has bounced, now go move it
 error:
 	li $v0, 4
 	la $a0, ERROR_OUT
