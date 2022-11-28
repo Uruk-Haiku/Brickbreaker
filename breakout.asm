@@ -73,18 +73,13 @@ main:
         #lw $s2, PADDLE:
         #lw $s3, BALL:
         addi $t0, $t0, 1 #i = 1
-        addi $t5, $t5, 300
+        addi $t5, $t5, 27
         addi $t2, $gp, 768 #offset gp by 768 to reach the start of the grey lne.
         addi $t3, $gp, 892 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
         li $t1, 0x808080 #use t1 to store grey.
     
 vwall_loop:
 	beq $t0, $t5, hwall_loop_setup
-    	#lw $t4, 256($t2)
-    	#lw $t6, 256($t3)
-    	#lw $t2, 0($t4) #use t2 to store position of first wall
-    	#lw $t3, 0($t6) #use t3 to store position of second wall
-    	# addi $t3, $t3, 252 #move t3 to other side of screen.
     	sw $t1, 0($t2) #store grey in t2
     	sw $t1, 0($t3) #store grey in t3
     	addi $t2, $t2, 128
@@ -104,10 +99,10 @@ hwall_loop:
  	j hwall_loop 	
 
 paddle_loop_setup:
-	addi $t2, $gp, 4024 #next to midpoint of last line
-	li $s2, 0x10008fb8 #location of the left pixel of the paddle.
+	addi $t2, $gp, 4020 #next to midpoint of last line
+	li $s2, 0x10008fb4 #location of the left pixel of the paddle.
 	li $t0, 0 #setup loop variable i
-	li $t5, 4 #loop limit.
+	li $t5, 5 #loop limit.
 	li $t1, 0x008000 #color green.
 draw_paddle:
 	beq $t0, $t5, brick_setup1
@@ -150,7 +145,7 @@ yellow_brick_setup:
  	j draw_brick	
  		
 draw_brick:
-	beq $t0, $t5, brick_setup
+	beq $t0, $t5, brick_setup #choose the color of the brick, set up location of the row to draw it.
 	sw $t7, 0($t2)
 	sw $t1, 4($t2)
 	sw $t1, 8($t2)
