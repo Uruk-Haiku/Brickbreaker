@@ -10,7 +10,17 @@
 # - Display height in pixels:   512
 # - Base Address for Display:   0x10008000 ($gp)
 ##############################################################################
-#PLAN:
+# Play Notes
+##############################################################################
+# Only play using 1 finger at a time. If you do inputs to frequently (>1 every
+# 20 milliseconds) MARS will completely lock up and need to be task-ended.
+# This is a known MARS bug and not our fault. If you play with a single finger,
+# it should be impossible to exceed this limit. Just to be clear, this is a 
+# MARS bug and there is nothing we can do about it other than avoid it.
+
+##############################################################################
+# Plan:
+##############################################################################
 #
 #SECTION 1: EASY FFEATURES:
 #1. Game over screen with retry option 
@@ -38,6 +48,7 @@ RED:
     .word 0xff0000
 GREEN:
     .word 0x00ff00
+ERROR_OUT: .asciiz "ERROR! SOMETHING BROKE!"
 
 
 
@@ -71,7 +82,7 @@ DOWN_LEFT:
 	.word 124
 # Down Right = 128
 DOWN_RIGHT:
-	.word 128
+	.word 132
 
 #t0: Always used as loop variable i.
 #t5: Always used as number of iterations for loop.
@@ -95,7 +106,7 @@ main:
         #lw $s2, PADDLE:
         #lw $s3, BALL:
         addi $t0, $t0, 1 #i = 1
-        addi $t5, $t5, 127
+        addi $t5, $t5, 28
         addi $t2, $gp, 768 #offset gp by 768 to reach the start of the grey lne.
         addi $t3, $gp, 892 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
         li $t1, 0x808080 #use t1 to store grey.
@@ -194,10 +205,10 @@ game_loop:
 	# 1a. Check if key has been pressed
     	# 1b. Check which key has been pressed
     	# 2a. Check for collisions
-    	#j collision_check #run check collisions
+    	j collision_check #run check collisions
 
 	# 2b. Update locations (paddle, ball)
-#update_location:
+update_location:
 	li $t1, 0x000000 #make $t1 black
 	sw $t1, 0($s3) #draw black in old spot of ball
 	add $s3, $s3, $s4 #increment position with direction
@@ -206,7 +217,7 @@ game_loop:
 	# 3. Draw the screen
 	# 4. Sleep
 	li $v0, 32
-	li $a0, 500
+	li $a0, 20
 	syscall
 
     #5. Go back to 1
@@ -251,14 +262,55 @@ unpause_game:
 	beq $t7, 0x70, game_loop
 	j respond_to_p
 	
-#collision_check:
-#	beq $s4, STRAIGHT_UP, collision_check_up #handle collision check if ball is going straight up
-#	beq $s4, STRAIGHT_DOWN, collision_check_down #handle collision check if ball is going straight down
-#	beq $s4, UP_LEFT, collision_check_ul #handle collision check if ball is going diagonally up and left
-#	beq $s4, UP_RIGHT, collision_check_ur #handle collision check if ball is going diagonally up and right
-#	beq $s4, DOWN_LEFT, collision_check_dl #handle collision check if ball is going diagonally down and left
-#	beq $s4, DOWN_RIGHT, collision_check_dr #handle collision check if ball is going diagonally down and right
-#	j update_location
-
-#collision_check_up:
+collision_check:
+	beq $s4, -128, collision_check_up # handle collision check if ball is going straight up
+	beq $s4, 128, collision_check_down # handle collision check if ball is going straight down
+	beq $s4, -132, collision_check_ul # handle collision check if ball is going diagonally up and left
+	beq $s4, -124, collision_check_ur # handle collision check if ball is going diagonally up and right
+	beq $s4, 124, collision_check_dl # handle collision check if ball is going diagonally down and left
+	beq $s4, 132, collision_check_dr # handle collision check if ball is going diagonally down and right
+	j error # Never should be reached
 	
+collision_check_up:
+	add $t4, $s3, $s4 # Find the space the ball will be in next
+	lw $t5, 0($t4) # Load the colour of that pixel to $t5
+	beq $t5, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	li $s4, 128 # Ball bounces, new direction is always straight down.
+	j update_location # Ball has bounced, now go move it
+	
+	
+
+collision_check_down:
+	add $t4, $s3, $s4 # Find the space the ball will be in next
+	lw $t5, 0($t4) # Load the colour of that pixel to $t5
+	beq $t5, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	li $s4, -128 # Ball bounces, new direction is always straight up.
+	bne $t5, 0x10008fb8, update_location # Go update location if NOT bouncing off paddle. Paddle is special.
+	#### BEGIN PADDLE COPYPASTA CODE #### YES I KNOW THIS IS BAD PROGRAMMING
+	# Bouncing off leftmost pixel in paddle
+	li $s4, -132
+	beq $t4, $s2, update_location
+	# Bouncing off centre-left pixel in paddle
+	
+	# Bouncing off centre pixel in paddle
+	# Bouncing off centre-right pixel in paddle
+	# Bouncing off rightmost pixel in paddle
+	
+	j update_location # Ball has bounced, now go move it
+
+collision_check_ul:
+
+
+collision_check_ur:
+
+
+collision_check_dl:
+
+
+collision_check_dr:
+
+
+error:
+	li $v0, 4
+	la $a0, ERROR_OUT
+	syscall
