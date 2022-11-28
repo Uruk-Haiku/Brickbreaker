@@ -40,6 +40,7 @@ GREEN:
     .word 0x00ff00
 
 
+
 ##############################################################################
 # Mutable Data
 ##############################################################################
@@ -50,6 +51,27 @@ BALL:
 # Register conventions:
 #s1: Stores memory address of keyboard.
 #s2: Stores paddle left endpoint.
+#s3: Stores ball location
+#s4: Stores ball direction. Ball only moves up or down, or 45 degrees left or right, up or down.
+# These are codified in the 6 values $s4 can take on:
+# Straight up = -128
+STRAIGHT_UP:
+	.word -128
+# Straight down = 128
+STRAIGHT_DOWN:
+	.word 128
+# Up Left = -132
+UP_LEFT:
+	.word -132
+# Up Right = -124
+UP_RIGHT:
+	.word -124
+# Down Left = 124
+DOWN_LEFT:
+	.word 124
+# Down Right = 128
+DOWN_RIGHT:
+	.word 128
 
 #t0: Always used as loop variable i.
 #t5: Always used as number of iterations for loop.
@@ -73,7 +95,7 @@ main:
         #lw $s2, PADDLE:
         #lw $s3, BALL:
         addi $t0, $t0, 1 #i = 1
-        addi $t5, $t5, 300
+        addi $t5, $t5, 127
         addi $t2, $gp, 768 #offset gp by 768 to reach the start of the grey lne.
         addi $t3, $gp, 892 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
         li $t1, 0x808080 #use t1 to store grey.
@@ -162,19 +184,33 @@ draw_brick:
  
 ball_setup:
 	li $t1, 0xffffff #color white for the ball
-	sw $t1, 3900($gp) #location of the ball:
+	sw $t1, 3900($gp) #draw ball at starting location
+	addi $s3, $gp, 3900 #write ball starting location into the tracking register
+	sw $s4, -128 #Set ball default direction to straight up
+	
 game_loop:
 	lw $t7, 0($s1)
 	beq $t7, 1, keyboard_input
 	# 1a. Check if key has been pressed
-    # 1b. Check which key has been pressed
-    # 2a. Check for collisions
+    	# 1b. Check which key has been pressed
+    	# 2a. Check for collisions
+    	#j collision_check #run check collisions
+
 	# 2b. Update locations (paddle, ball)
+#update_location:
+	li $t1, 0x000000 #make $t1 black
+	sw $t1, 0($s3) #draw black in old spot of ball
+	add $s3, $s3, $s4 #increment position with direction
+	li $t1, 0xffffff #make $t1 white
+	sw $t1, 0($s3) #draw white in new spot of ball
 	# 3. Draw the screen
 	# 4. Sleep
+	li $v0, 32
+	li $a0, 500
+	syscall
 
     #5. Go back to 1
-    b game_loop
+    j game_loop
 
 keyboard_input:
 	lw $t7, 4($s1) #get input from keyboard.
@@ -214,3 +250,15 @@ unpause_game:
 	lw $t7, 4($s1)
 	beq $t7, 0x70, game_loop
 	j respond_to_p
+	
+#collision_check:
+#	beq $s4, STRAIGHT_UP, collision_check_up #handle collision check if ball is going straight up
+#	beq $s4, STRAIGHT_DOWN, collision_check_down #handle collision check if ball is going straight down
+#	beq $s4, UP_LEFT, collision_check_ul #handle collision check if ball is going diagonally up and left
+#	beq $s4, UP_RIGHT, collision_check_ur #handle collision check if ball is going diagonally up and right
+#	beq $s4, DOWN_LEFT, collision_check_dl #handle collision check if ball is going diagonally down and left
+#	beq $s4, DOWN_RIGHT, collision_check_dr #handle collision check if ball is going diagonally down and right
+#	j update_location
+
+#collision_check_up:
+	
