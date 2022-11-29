@@ -61,11 +61,6 @@ GAME_OVER:
 
 
 
-##############################################################################
-# Mutable Data
-##############################################################################
-PADDLE:
-BALL:
 
 ##############################################################################
 # Register conventions:
@@ -518,7 +513,6 @@ break_brick: # This one is actually a function. Be careful.
 	beq $t1, 0x808080, stop_break # If the """brick""" is gray, do not break and go home. That is not a brick.
 	beq $t1, 0x008000, stop_break # If the """brick""" is green, do not break and go home. That is not a brick.
 	
-	########## HORRIBLE CODE INCOMING!!!! REGISTER MISUSE INCOMING!!!! ##########
 	lw $a1, -4($s6) # Set $a1 to the colour of the pixel to the LEFT of $s6
 	lw $a2, 4($s6) # Set $a2 to the colour of the pixel to the RIGHT of $s6
 	bne $t1, $a1, break_from_left # Colour of pixel to the left is not the same, so $s6 is the leftmost pixel
