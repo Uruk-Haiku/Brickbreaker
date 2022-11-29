@@ -28,14 +28,14 @@
 # Plan:
 ##############################################################################
 #
-#SECTION 1: EASY FFEATURES:
+#SECTION 1: EASY FEATURES:
 #1. Game over screen with retry option 
-#2. Allow user to pause with p
+#2. DONE - Allow user to pause with p
 #3. Unbreakable bricks.
 #
 #SECTION 2: hARD FREATURES:
 #1. REQUIRE BRICKS TO BE HIT MULTIPLE TIMES
-#2. Animation for bricks when they dissappear/get damaged.	
+#2. DONE - Animation for bricks when they dissappear/get damaged.	
 
 
     .data
@@ -74,25 +74,19 @@ BALL:
 #s3: Stores ball location
 #s4: Stores ball direction. Ball only moves up or down, or 45 degrees left or right, up or down.
 #s5: Stores next ball position. Largely only used for detecting collisions.
+#s6: Stores the pixel that is going to be broken first during a brickbreak.
 # The 6 values $s4 can take on:
 # Straight up = -128
-STRAIGHT_UP:
-	.word -128
+
 # Straight down = 128
-STRAIGHT_DOWN:
-	.word 128
+
 # Up Left = -132
-UP_LEFT:
-	.word -132
+
 # Up Right = -124
-UP_RIGHT:
-	.word -124
+
 # Down Left = 124
-DOWN_LEFT:
-	.word 124
+
 # Down Right = 128
-DOWN_RIGHT:
-	.word 132
 
 #t0: Always used as loop variable i.
 #t5: Always used as number of iterations for loop.
@@ -310,7 +304,7 @@ collision_check_up: # DONE
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, 128 # Ball bounces, new direction is always straight down.
 	# Breaking the brick
-	add $a0, $s3, -128 # Load pixel bounced off of in this case
+	add $s6, $s3, -128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check # Ball has bounced, now go move. Ball will NEVER hit paddle on upwards motion.
 
@@ -322,7 +316,7 @@ collision_check_down: # DONE
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, -128 # Ball bounces, new direction is always straight up.
 	# Breaking the brick
-	add $a0, $s3, 128 # Load pixel bounced off of in this case
+	add $s6, $s3, 128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler
@@ -345,7 +339,7 @@ ul_corner_or_edge: # For hitting a corner (wall and ceiling) or edge (no wall, n
 	# Bounce is therefore inverting direction, so ball goes down and right
 	li $s4, 132 # Set direction to down and right
 	# Breaking the brick
-	add $a0, $s3, -132 # Load pixel bounced off of in this case
+	add $s6, $s3, -132 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check # Ball has bounced, go move and confirm no further collisions.
 ul_q_ceiling_no_wall:
@@ -355,14 +349,14 @@ ul_q_ceiling_no_wall:
 	# So therefore, bounce is now down and left
 	li $s4, 124 # Set direction to down and left
 	# Breaking the brick
-	add $a0, $s3, -128 # Load pixel bounced off of in this case
+	add $s6, $s3, -128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check
 ul_no_ceiling_yes_wall:
 	# No ceiling, yes wall, so new direction is up and right
 	li $s4, -124
 	# Breaking the brick
-	add $a0, $s3, -4 # Load pixel bounced off of in this case
+	add $s6, $s3, -4 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check
 	
@@ -384,7 +378,7 @@ ur_corner_or_edge: # For hitting a corner (wall and ceiling) or edge (no wall, n
 	# Bounce is therefore inverting direction, so ball goes down and left
 	li $s4, 124 # Set direction to down and left
 	# Breaking the brick
-	add $a0, $s3, -124 # Load pixel bounced off of in this case
+	add $s6, $s3, -124 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check # Ball has bounced, go move and confirm no further collisions.
 ur_q_ceiling_no_wall:
@@ -394,14 +388,14 @@ ur_q_ceiling_no_wall:
 	# So therefore, bounce is now down and right
 	li $s4, 132 # Set direction to down and right
 	# Breaking the brick
-	add $a0, $s3, -128 # Load pixel bounced off of in this case
+	add $s6, $s3, -128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check
 ur_no_ceiling_yes_wall:
 	# No ceiling, yes wall, so new direction is up and left
 	li $s4, -132
 	# Breaking the brick
-	add $a0, $s3, 4 # Load pixel bounced off of in this case
+	add $s6, $s3, 4 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check
 
@@ -422,7 +416,7 @@ dl_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no 
 	# Bounce is therefore inverting direction, so ball goes up and right
 	li $s4, -124 # Set direction to up and right
 	# Breaking the brick
-	add $a0, $s3, 124 # Load pixel bounced off of in this case
+	add $s6, $s3, 124 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -432,7 +426,7 @@ dl_q_floor_no_wall:
 	# Floor confirmed, no wall. So therefore, bounce is now up and left
 	li $s4, -132 # Set direction to up and left
 	# Breaking the brick
-	add $a0, $s3, 128 # Load pixel bounced off of in this case
+	add $s6, $s3, 128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -440,7 +434,7 @@ dl_no_floor_yes_wall:
 	# No floor, yes wall, so new direction is down and right
 	li $s4, 132
 	# Breaking the brick
-	add $a0, $s3, -4 # Load pixel bounced off of in this case
+	add $s6, $s3, -4 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -461,7 +455,7 @@ dr_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no 
 	# Bounce is therefore inverting direction, so ball goes up and left
 	li $s4, -132 # Set direction to up and left
 	# Breaking the brick
-	add $a0, $s3, 132 # Load pixel bounced off of in this case
+	add $s6, $s3, 132 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -471,7 +465,7 @@ dr_q_floor_no_wall:
 	# Floor confirmed, no wall. So therefore, bounce is now up and right
 	li $s4, -124 # Set direction to up and right
 	# Breaking the brick
-	add $a0, $s3, 128 # Load pixel bounced off of in this case
+	add $s6, $s3, 128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -479,7 +473,7 @@ dr_no_floor_yes_wall:
 	# No floor, yes wall, so new direction is down and left
 	li $s4, 124
 	# Breaking the brick
-	add $a0, $s3, 4 # Load pixel bounced off of in this case
+	add $s6, $s3, 4 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler # Since it is bouncing off paddle, go handle
@@ -513,9 +507,10 @@ paddle_handler:
 break_brick: # This one is actually a function. Be careful.
 	# This is invoked before every single "recollide check" to break the brick we leave from.
 	# Expected Arguments:
-	# $a0 = The pixel that is going to be broken first on this brick. Necessary
+	# $s6 = The pixel that is going to be broken first on this brick. Necessary
 	# to avoid odd-looking breaks due to weird targeting.
-	lw $t1, 0($a0) # Set $t1 to the colour in the brick that is getting broken.
+	lw $t1, 0($s6) # Set $t1 to the colour in the brick that is getting broken.
+	
 	# Now, since our bricks are *** 3 *** pixels long, the break can start in the middle,
 	# or on either side.
 	
@@ -524,31 +519,40 @@ break_brick: # This one is actually a function. Be careful.
 	beq $t1, 0x008000, stop_break # If the """brick""" is green, do not break and go home. That is not a brick.
 	
 	########## HORRIBLE CODE INCOMING!!!! REGISTER MISUSE INCOMING!!!! ##########
-	lw $a1, -4($a0) # Set $a1 to the colour of the pixel to the LEFT of $a0
-	lw $a2, 4($a0) # Set $a2 to the colour of the pixel to the RIGHT of $a0
-	bne $t1, $a1, break_from_left # Colour of pixel to the left is not the same, so $a0 is the leftmost pixel
-	# Pixel to the left of $a0 is the same colour, so same brick.
-	# This means that $a0 is either the middle or rightmost pixel on a our standard 1 x 3 brick
-	bne $t1, $a2, break_from_right # Colour of pixel to the right is not the same, so $a0 is the rightmost pixel
-	# Pixel to the right of $a0 is the same colour, so same brick.
-	# This means that $a0 is the middle pixel of our brick. It can now be broken.
+	lw $a1, -4($s6) # Set $a1 to the colour of the pixel to the LEFT of $s6
+	lw $a2, 4($s6) # Set $a2 to the colour of the pixel to the RIGHT of $s6
+	bne $t1, $a1, break_from_left # Colour of pixel to the left is not the same, so $s6 is the leftmost pixel
+	# Pixel to the left of $s6 is the same colour, so same brick.
+	# This means that $s6 is either the middle or rightmost pixel on a our standard 1 x 3 brick
+	bne $t1, $a2, break_from_right # Colour of pixel to the right is not the same, so $s6 is the rightmost pixel
+	# Pixel to the right of $s6 is the same colour, so same brick.
+	# This means that $s6 is the middle pixel of our brick. It can now be broken.
 	###################**** BRICK BREAKING ANIMATION HERE ****###################
 	li $t1, 0x000000 # Set $t1 to black, prepare to paint over brick
-	sw $t1, -4($a0) # Paint left
-	sw $t1, 0($a0) # Paint middle
-	sw $t1, 4($a0) # Paint right
+	sw $t1, -4($s6) # Paint left
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, 0($s6) # Paint middle
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, 4($s6) # Paint right
+	syscall # Microsleep. Set up at top of break_brick
 	jr $ra # Leave
 break_from_left:
 	li $t1, 0x000000 # Set $t1 to black, prepare to paint over brick
-	sw $t1, 0($a0) # Paint left
-	sw $t1, 4($a0) # Paint middle
-	sw $t1, 8($a0) # Paint right
+	sw $t1, 0($s6) # Paint left
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, 4($s6) # Paint middle
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, 8($s6) # Paint right
+	syscall # Microsleep. Set up at top of break_brick
 	jr $ra # Leave
 break_from_right:
 	li $t1, 0x000000 # Set $t1 to black, prepare to paint over brick
-	sw $t1, -8($a0) # Paint left
-	sw $t1, -4($a0) # Paint middle
-	sw $t1, 0($a0) # Paint right
+	sw $t1, -8($s6) # Paint left
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, -4($s6) # Paint middle
+	syscall # Microsleep. Set up at top of break_brick
+	sw $t1, 0($s6) # Paint right
+	syscall # Microsleep. Set up at top of break_brick
 	jr $ra # Leave
 	###################**** BRICK BREAKING ANIMATION DONE ****###################
 stop_break:
