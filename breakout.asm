@@ -300,6 +300,8 @@ collision_check:
 	beq $s4, 132, collision_check_dr # handle collision check if ball is going diagonally down and right
 	j error # Never should be reached
 	
+	
+	
 collision_check_up: # DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
@@ -307,13 +309,17 @@ collision_check_up: # DONE
 	li $s4, 128 # Ball bounces, new direction is always straight down.
 	j update_location # Ball has bounced, now go move. Ball will NEVER hit paddle on upwards motion.
 
+
+
 collision_check_down: # DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, -128 # Ball bounces, new direction is always straight up.
-	bne $t4, 0x008000 update_location # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	bne $t4, 0x008000, update_location # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler
+
+
 
 collision_check_ul: # PROBABLY DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
@@ -345,7 +351,7 @@ ul_no_ceiling_yes_wall:
 	
 	
 
-collision_check_ur:
+collision_check_ur: # PROBABLY DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
@@ -375,41 +381,89 @@ ur_no_ceiling_yes_wall:
 
 
 
-collision_check_dl:
+collision_check_dl: # PROBABLY DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
-
-
-
-collision_check_dr:
+	# Check wall, we have just confirmed there is something else in the corner.
+	lw $t1, -4($s3) # Set $t1 to the colour of the pixel to the left of the ball's CURRENT position
+	beq $t1, 0x000000, dl_q_floor_no_wall # If no wall, jump to "Questioning floor, no wall"
+	# Wall is confirmed
+	lw $t1, 128($s3) # set $t1 to the colour of the pixel directly below the ball's CURRENT position
+	beq $t1, 0x000000, dl_no_floor_yes_wall # If no floor, jump to "No floor, yes wall"
+	# Wall AND floor are confirmed
+dl_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no floor)
+	# Bounce is therefore inverting direction, so ball goes up and right
+	li $s4, -124 # Set direction to up and right
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
+dl_q_floor_no_wall:
+	lw $t1, 128($s3) # Set $t1 to the colour of the pixel directly below the ball
+	beq $t1, 0x000000, dl_corner_or_edge # There is no ceiling or wall, so this is an edge
+	# Floor confirmed, no wall. So therefore, bounce is now up and left
+	li $s4, -132 # Set direction to up and left
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
+dl_no_floor_yes_wall:
+	# No floor, yes wall, so new direction is down and right
+	li $s4, 132
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
+	
+	
+collision_check_dr: # PROBABLY DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	# Check wall, we have just confirmed there is something else in the corner.
+	lw $t1, 4($s3) # Set $t1 to the colour of the pixel to the right of the ball's CURRENT position
+	beq $t1, 0x000000, dr_q_floor_no_wall # If no wall, jump to "Questioning floor, no wall"
+	# Wall is confirmed
+	lw $t1, 128($s3) # set $t1 to the colour of the pixel directly below the ball's CURRENT position
+	beq $t1, 0x000000, dr_no_floor_yes_wall # If no floor, jump to "No floor, yes wall"
+	# Wall AND floor are confirmed
+dr_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no floor)
+	# Bounce is therefore inverting direction, so ball goes up and left
+	li $s4, -132 # Set direction to up and left
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
+dr_q_floor_no_wall:
+	lw $t1, 128($s3) # Set $t1 to the colour of the pixel directly below the ball
+	beq $t1, 0x000000, dr_corner_or_edge # There is no ceiling or wall, so this is an edge
+	# Floor confirmed, no wall. So therefore, bounce is now up and right
+	li $s4, -124 # Set direction to up and right
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
+dr_no_floor_yes_wall:
+	# No floor, yes wall, so new direction is down and left
+	li $s4, 124
+	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
+	j paddle_handler # Since it is bouncing off paddle, go handle
 
 
 
 paddle_handler:
 	# Bouncing off leftmost pixel in paddle
-	li $s4, -132
+	li $s4, -132 # Set new ball direction IF this is the correct paddle pixel
 	add $t3, $s2, 0 # Set $t3 to the left endpoint of paddle
 	beq $s5, $t3, update_location # Ball next position WILL be this pixel
 	# Bouncing off centre-left pixel in paddle
-	li $s4, -132
+	li $s4, -132 # Set new ball direction IF this is the correct paddle pixel
 	add $t3, $t3, 4 # Move to next pixel in paddle to the right
 	beq $s5, $t3, update_location # Ball next position WILL be this pixel
 	# Bouncing off centre pixel in paddle
-	li $s4, -128
+	li $s4, -128 # Set new ball direction IF this is the correct paddle pixel
 	add $t3, $t3, 4 # Move to next pixel in paddle to the right
 	beq $s5, $t3, update_location # Ball next position WILL be this pixel
 	# Bouncing off centre-right pixel in paddle
-	li $s4, -124
+	li $s4, -124 # Set new ball direction IF this is the correct paddle pixel
 	add $t3, $t3, 4 # Move to next pixel in paddle to the right
 	beq $s5, $t3, update_location # Ball next position WILL be this pixel
 	# Bouncing off rightmost pixel in paddle
-	li $s4, -124
+	li $s4, -124 # Set new ball direction since THIS IS the correct paddle pixel
 	# No branch since it HAS to be this one if it wasn't one of the others
 	j update_location # Ball has bounced, now go move it
+	
 error:
 	li $v0, 4
 	la $a0, ERROR_OUT
