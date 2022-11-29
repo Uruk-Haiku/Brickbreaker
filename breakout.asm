@@ -98,10 +98,14 @@ DOWN_RIGHT:
 #t5: Always used as number of iterations for loop.
 #t1: Stores color whenever needed to paint a pixel.
 #t2: Stores location of pixel when needed to color it.
-#t3: may be used to store location of pixel when coloring.
+#t3: May be used to store location of pixel when coloring, and then used to
+# help check pixel colour when computing collisions.
 #t4: Stores the colour of the ball's next location
 
+# Argument registers are so far used only during the brickbreak function
 #a0: Used for storing position of first pixel broken during a brickbreak
+#a1: Used for storing COLOUR of LEFT pixel during a brickbreak
+#a2: Used for storing COLOUR of RIGHT pixel during a brickbreak
 ##############################################################################
 
 
