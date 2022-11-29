@@ -48,7 +48,10 @@ RED:
     .word 0xff0000
 GREEN:
     .word 0x00ff00
-ERROR_OUT: .asciiz "ERROR! SOMETHING BROKE!"
+ERROR_OUT:
+    .asciiz "ERROR! SOMETHING BROKE!"
+GAME_OVER:
+    .asciiz "GAME OVER!"
 
 
 
@@ -196,11 +199,12 @@ ball_setup:
 	li $s4, -128 #Set ball default direction to straight up
 	
 game_loop:
-	lw $t7, 0($s1)
-	beq $t7, 1, keyboard_input
-	# 1a. Check if key has been pressed
-    	# 1b. Check which key has been pressed
-    	# 2a. Check for collisions
+	# Check to see if player has lost
+	bge $s3, 0x10008FFC player_lost
+	# Check for keyboard input
+	lw $t7, 0($s1) # Pull address of keyboard input
+	beq $t7, 1, keyboard_input # Has input happened?
+    	# Check for collisions
     	j collision_check #run check collisions
 
 	# 2b. Update locations (paddle, ball)
@@ -253,10 +257,24 @@ respond_to_p: #pause the game
 	lw $t7, 0($s1)
 	beq $t7, 1, unpause_game
 	j respond_to_p
+	
 unpause_game:
 	lw $t7, 4($s1)
 	beq $t7, 0x70, game_loop
 	j respond_to_p
+	
+player_lost:
+	# Test of boundaries
+	# TODO delete this
+	li $t1, 0xaa00aa
+	sw $t1, 0x10008FFC # Draw pixel at largest acceptable memory address in $gp
+	# Test over
+	li $v0, 4 # Set operation to print string
+	la $a0, GAME_OVER # String to print
+	syscall # Actually print the string
+	li $v0, 10 # Set operation to close game
+	syscall # Actually close game
+	
 
 
 
