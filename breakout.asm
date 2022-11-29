@@ -225,7 +225,7 @@ update_location:
 	sw $t1, 0($s3) #draw white in new spot of ball
 	# Sleep
 	li $v0, 32 # Set operation to sleep
-	li $a0, 20 # Set length of sleep in milliseconds
+	li $a0, 40 # Set length of sleep in milliseconds
 	syscall # Actually go to sleep
 
     	# Jump back to the top of the loop
