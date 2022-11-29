@@ -68,7 +68,7 @@ BALL:
 #s3: Stores ball location
 #s4: Stores ball direction. Ball only moves up or down, or 45 degrees left or right, up or down.
 #s5: Stores next ball position. Largely only used for detecting collisions.
-# These are codified in the 6 values $s4 can take on:
+# The 6 values $s4 can take on:
 # Straight up = -128
 STRAIGHT_UP:
 	.word -128
@@ -94,6 +94,16 @@ DOWN_RIGHT:
 #t2: Stores location of pixel when needed to color it.
 #t3: may be used to store location of pixel when coloring.
 #t4: Stores the colour of the ball's next location
+#t6: Stores the state of the ball's "cornering" to decide bounce.
+
+# Basically describes which sides the ball is blocked in on, so that diagonal bounces
+# Work properly, bounce nicely in corners and stop phasing through stuff
+# These are the values that $t6 can take on:
+# Striking corner/edge (block in corner, above/below and side are either BOTH present or BOTH absent) = 0
+# Striking wall (block to the side, block in corner but not above/below) = 1
+# Striking ceiling (block above/below, block in corner, but not to the side) = 2
+
+#a0 - a2 store presence of the side, corner, and above/below walls with 0 if no, 1 if yes
 ##############################################################################
 
 
@@ -206,22 +216,22 @@ game_loop:
 	beq $t7, 1, keyboard_input # Has input happened?
     	# Check for collisions
     	j collision_check #run check collisions
-
-	# 2b. Update locations (paddle, ball)
 update_location:
+	# Handle breaks if they occur
+	
+	# Redraw ball
 	li $t1, 0x000000 #make $t1 black
 	sw $t1, 0($s3) #draw black in old spot of ball
 	add $s3, $s3, $s4 #increment position with direction
 	li $t1, 0xffffff #make $t1 white
 	sw $t1, 0($s3) #draw white in new spot of ball
-	# 3. Draw the screen
-	# 4. Sleep
-	li $v0, 32
-	li $a0, 20
-	syscall
+	# Sleep
+	li $v0, 32 # Set operation to sleep
+	li $a0, 20 # Set length of sleep in milliseconds
+	syscall # Actually go to sleep
 
-    #5. Go back to 1
-    j game_loop
+    	# Jump back to the top of the loop
+   	 j game_loop
 
 keyboard_input:
 	lw $t7, 4($s1) #get input from keyboard.
@@ -290,14 +300,14 @@ collision_check:
 	beq $s4, 132, collision_check_dr # handle collision check if ball is going diagonally down and right
 	j error # Never should be reached
 	
-collision_check_up:
+collision_check_up: # DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
 	li $s4, 128 # Ball bounces, new direction is always straight down.
-	j update_location # Ball has bounced, now go move it
+	j update_location # Ball has bounced, now go move. Ball will NEVER hit paddle on upwards motion.
 
-collision_check_down:
+collision_check_down: # DONE
 	add $s5, $s3, $s4 # Find the space the ball will be in next
 	lw $t4, 0($s5) # Load the colour of that pixel to $t4
 	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
@@ -305,16 +315,78 @@ collision_check_down:
 	bne $t4, 0x008000 update_location # Go update location if NOT bouncing off paddle's green. Paddle is special.
 	j paddle_handler
 
-collision_check_ul:
+collision_check_ul: # PROBABLY DONE
+	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
+	lw $t4, 0($s5) # Load the colour of that pixel to $t4
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	# We have just confirmed corner is not black. Something is there.
+	# Check wall
+	lw $t1, -4($s3) # Set $t1 to the colour of the pixel to the left of the ball's CURRENT position
+	beq $t1, 0x000000, ul_q_ceiling_no_wall # If no wall, jump to "Questioning ceiling, no wall"
+	# Wall is confirmed
+	lw $t1, -128($s3) # Set $t1 to the colour of the pixel directly above the ball's CURRENT position
+	beq $t1, 0x000000, ul_no_ceiling_yes_wall # If no ceiling, jump to "No ceiling, yes wall"
+	# Wall AND ceiling are confirmed
+ul_corner_or_edge: # For hitting a corner (wall and ceiling) or edge (no wall, no ceiling)
+	# Bounce is therefore inverting direction, so ball goes down and right
+	li $s4, 132 # Set direction to down and right
+	j collision_check # Ball has bounced, go move and confirm no further collisions.
+ul_q_ceiling_no_wall:
+	lw $t1, -128($s3) # Set $t1 to the colour of the pixel directly above the ball
+	beq $t1, 0x000000, ul_corner_or_edge # There is no ceiling or wall, so this is an edge
+	# Ceiling confirmed, no wall
+	# So therefore, bounce is now down and left
+	li $s4, 124 # Set direction to down and left
+	j collision_check
+ul_no_ceiling_yes_wall:
+	# No ceiling, yes wall, so new direction is up and right
+	li $s4, -124
+	j collision_check
+	
 	
 
 collision_check_ur:
+	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
+	lw $t4, 0($s5) # Load the colour of that pixel to $t4
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+	# We have just confirmed corner is not black. Something else is there.
+	# Check wall
+	lw $t1, 4($s3) # Set $t1 to the colour of the pixel to the right of the ball's CURRENT position
+	beq $t1, 0x000000, ur_q_ceiling_no_wall # If no wall, jump to "Questioning ceiling, no wall"
+	# Wall is confirmed
+	lw $t1, -128($s3) # set $t1 to the colour of the pixel directly above the ball's CURRENT position
+	beq $t1, 0x000000, ur_no_ceiling_yes_wall # If no ceiling, jump to "No ceiling, yes wall"
+	# Wall AND ceiling are confirmed
+ur_corner_or_edge: # For hitting a corner (wall and ceiling) or edge (no wall, no ceiling)
+	# Bounce is therefore inverting direction, so ball goes down and left
+	li $s4, 124 # Set direction to down and left
+	j collision_check # Ball has bounced, go move and confirm no further collisions.
+ur_q_ceiling_no_wall:
+	lw $t1, -128($s3) # Set $t1 to the colour of the pixel directly above the ball
+	beq $t1, 0x000000, ur_corner_or_edge # There is no ceiling or wall, so this is an edge
+	# Ceiling confirmed, no wall
+	# So therefore, bounce is now down and right
+	li $s4, 132 # Set direction to down and right
+	j collision_check
+ur_no_ceiling_yes_wall:
+	# No ceiling, yes wall, so new direction is up and left
+	li $s4, -132
+	j collision_check
+
 
 
 collision_check_dl:
+	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
+	lw $t4, 0($s5) # Load the colour of that pixel to $t4
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+
 
 
 collision_check_dr:
+	add $s5, $s3, $s4 # Find the space the ball will be in next, write it to $s5
+	lw $t4, 0($s5) # Load the colour of that pixel to $t4
+	beq $t4, 0x000000, update_location # Go update location iff nothing is there (colour is black)
+
 
 
 paddle_handler:
