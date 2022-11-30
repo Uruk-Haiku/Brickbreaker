@@ -24,17 +24,19 @@
 # Bricks of the same colour must never be placed touching side-to-side. Up and
 # down is fine. This is due to how the algorithm for breaking bricks works.
 
+# Largest memory address displayed on screen is 0x10008FFC
+
 ##############################################################################
 # Plan:
 ##############################################################################
 #
 #SECTION 1: EASY FEATURES:
-#1. Game over screen with retry option 
+#1. Game over screen with level select retry
 #2. DONE - Allow user to pause with p
 #3. Unbreakable bricks.
 #
-#SECTION 2: hARD FREATURES:
-#1. REQUIRE BRICKS TO BE HIT MULTIPLE TIMES
+#SECTION 2: HARD FREATURES:
+#1. Second Level
 #2. DONE - Animation for bricks when they dissappear/get damaged.	
 
 
@@ -265,11 +267,6 @@ unpause_game:
 	j respond_to_p
 	
 player_lost:
-	# Test of boundaries
-	# TODO delete this
-	li $t1, 0xaa00aa
-	sw $t1, 0x10008FFC # Draw pixel at largest acceptable memory address in $gp
-	# Test over
 	li $v0, 4 # Set operation to print string
 	la $a0, GAME_OVER # String to print
 	syscall # Actually print the string
