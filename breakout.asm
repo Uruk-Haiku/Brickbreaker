@@ -31,13 +31,13 @@
 ##############################################################################
 #
 #SECTION 1: EASY FEATURES:
-#1. Game over screen with level select retry
 #2. DONE - Allow user to pause with p
-#3. Unbreakable bricks.
+#3. DONE - Unbreakable bricks.
 #
 #SECTION 2: HARD FREATURES:
-#1. Second Level
-#2. DONE - Animation for bricks when they dissappear/get damaged.	
+#1. DONE - Second Level
+#2. DONE - Animation for bricks when they dissappear/get damaged.
+#3. DONE - Menu Screen for level selection
 
 
     .data
@@ -578,6 +578,15 @@ ul_q_ceiling_no_wall:
 	# So therefore, bounce is now down and left
 	li $s4, 124 # Set direction to down and left
 	# Breaking the brick
+	lw $t0, -4($s3) # Load colour LEFT of the ball
+	beq $t0, 0x000000, ul_edge # This is an edge, go break the corner
+	# Corner confirmed
+	add $s6, $s3, -128
+	jal break_brick # Attempt break above
+	add $s6, $s3, -4
+	jal break_brick # Attempt break beside
+	j collision_check # Ball has bounced, go move
+ul_edge:
 	add $s6, $s3, -128 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check
@@ -607,6 +616,15 @@ ur_corner_or_edge: # For hitting a corner (wall and ceiling) or edge (no wall, n
 	# Bounce is therefore inverting direction, so ball goes down and left
 	li $s4, 124 # Set direction to down and left
 	# Breaking the brick
+	lw $t0, 4($s3) # Load colour RIGHT of the ball
+	beq $t0, 0x000000, ur_edge # THis is an edge, go break the corner
+	# Corner confirmed
+	add $s6, $s3, -128
+	jal break_brick # Attempt break above
+	add $s6, $s3, 4
+	jal break_brick # Attempt break beside
+	j collision_check # Ball has bounced, go move
+ur_edge:
 	add $s6, $s3, -124 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	j collision_check # Ball has bounced, go move and confirm no further collisions.
@@ -645,6 +663,15 @@ dl_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no 
 	# Bounce is therefore inverting direction, so ball goes up and right
 	li $s4, -124 # Set direction to up and right
 	# Breaking the brick
+	lw $t0, -4($s3) # Load colour LEFT of the ball
+	beq $t0, 0x000000, dl_edge # THis is an edge, go break the corner
+	# Corner confirmed
+	add $s6, $s3, 128
+	jal break_brick # Attempt break below
+	add $s6, $s3, -4
+	jal break_brick # Attempt break beside
+	j collision_check # Ball has bounced, go move
+dl_edge:
 	add $s6, $s3, 124 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
@@ -684,6 +711,15 @@ dr_corner_or_edge: # For hitting a corner (wall and floor) or edge (no wall, no 
 	# Bounce is therefore inverting direction, so ball goes up and left
 	li $s4, -132 # Set direction to up and left
 	# Breaking the brick
+	lw $t0, 4($s3) # Load colour RIGHT of the ball
+	beq $t0, 0x000000, dr_edge # THis is an edge, go break the corner
+	# Corner confirmed
+	add $s6, $s3, 128
+	jal break_brick # Attempt break below
+	add $s6, $s3, 4
+	jal break_brick # Attempt break beside
+	j collision_check # Ball has bounced, go move
+dr_edge:
 	add $s6, $s3, 132 # Load pixel bounced off of in this case
 	jal break_brick # Break the break that pixel is attached to, IFF it is a brick.
 	bne $t4, 0x008000, collision_check # Go update location if NOT bouncing off paddle's green. Paddle is special.
@@ -746,6 +782,7 @@ break_brick: # This one is actually a function. Be careful.
 	# But first, we are not breaking the paddle or walls.
 	beq $t1, 0x808080, stop_break # If the """brick""" is gray, do not break and go home. That is not a brick.
 	beq $t1, 0x008000, stop_break # If the """brick""" is green, do not break and go home. That is not a brick.
+	beq $t1, 0x000000, stop_break # If the """brick""" is black, do not break and go home. That is not a brick.
 	
 	lw $a1, -4($s6) # Set $a1 to the colour of the pixel to the LEFT of $s6
 	lw $a2, 4($s6) # Set $a2 to the colour of the pixel to the RIGHT of $s6
