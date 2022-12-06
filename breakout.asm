@@ -115,13 +115,170 @@ DOWN_RIGHT:
 	.text
 	.globl main
 
-	# Run the Brick Breaker game.
+
+start_screen:
+	lw $gp, ADDR_DSPL
+        lw $s1, ADDR_KBRD
+        j draw_menu
+        
+draw_menu: #this is sort of self explanatory. a0 is used as starting pixel for each letter. a1 stores the color.
+	addi $a0, $gp, 1036 #start pixel of C.
+	li $a1, 0xffffff #color white.
+	jal draw_C 
+	addi $a0, $gp, 1052
+	jal draw_H
+	addi $a0, $gp, 1072
+	jal draw_O
+	addi $a0, $gp, 1092
+	jal draw_O
+	addi $a0, $gp, 1112
+	jal draw_S
+	addi $a0, $gp, 1128
+	jal draw_E
+	addi $a0, $gp, 1804
+	jal draw_L
+	addi $a0, $gp, 1816
+	jal draw_V
+	addi $a0, $gp, 1840
+	jal draw_L
+	addi $t0, $gp, 1856
+	sw $a1, 128($t0)
+	sw $a1, 384($t0)
+	#addi $a0, $gp, 1096
+	#jal draw_S
+	j menu
+	#j main	
+	
+black_screen:
+	addi $t0, $0, 1 #set up loop variable i = 1
+	addi $t5, $0, 1025 #loop limit. There are 1024 pixels.
+	li $t1, 0x000000 #color black
+	addi $t2, $gp, 0 #start at first pixel.
+	j black_loop
+black_loop:
+	beq $t5, $t0, return 
+	addi $t0, $t0, 1 #i = i+ 1
+	sw $t1, 0($t2) #color pixel black
+	addi $t2, $t2, 4 #next pixel.
+	j black_loop
+return: #use this to exit function whenever your function is a loop.
+	jr $ra
+draw_C: #function. Used to color C. Not much to say. 
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 516($a0)
+	sw $a1, 520($a0)
+	jr $ra
+draw_H:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 12($a0)
+	sw $a1, 140($a0)
+	sw $a1, 268($a0)
+	sw $a1, 396($a0)
+	sw $a1, 524($a0)
+	sw $a1, 260($a0)
+	sw $a1, 264($a0)
+	jr $ra
+
+draw_O:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 12($a0)
+	sw $a1, 140($a0)
+	sw $a1, 268($a0)
+	sw $a1, 396($a0)
+	sw $a1, 524($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 516($a0)
+	sw $a1, 520($a0)
+	jr $ra
+
+draw_S:
+	sw $a1, 0($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 260($a0)
+	sw $a1, 264($a0)
+	sw $a1, 392($a0)
+	sw $a1, 520($a0)
+	sw $a1, 516($a0)
+	sw $a1, 512($a0)
+	jr $ra
+	
+draw_E:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 260($a0)
+	sw $a1, 264($a0)
+	sw $a1, 516($a0)
+	sw $a1, 520($a0)
+	jr $ra 
+	
+draw_L:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 516($a0)
+	sw $a1, 520($a0)
+	jr $ra
+
+draw_V: #this one is weird. Idk how to draw it other than what I did.
+	sw $a1, 256($a0)
+	sw $a1, 388($a0)
+	sw $a1, 520($a0)
+	sw $a1, 396($a0)
+	sw $a1, 272($a0)
+	jr $ra
+menu: #start of the game. Loops until we pick a level.
+	lw $t7, 0($s1)
+	beq $t7, 1, pick_level
+	j menu
+pick_level:
+	lw $t7, 4($s1) #load input value
+	beq $t7, 0x31, draw_level_1 #if input is 1, draw level 1.
+	beq $t7, 0x32, draw_level_2 #if input is 2, draw level 2.
+	j menu #if it is neither, we go back to menu and wait for another input.
+
+draw_level_2:
+	jal black_screen #clear menu screen.
+	jal main # sends back to original code to draw the paddle, wall, and ball
+	jal brick_setup2 #sets up and draws the bricks for the second level.
+	j start_game #sends to start game, which waits for an input to start playing.
+	
+draw_level_1:
+	jal black_screen #clear menu screen.
+	jal main # sends back to original code to draw the paddle, wall, and ball
+	j brick_setup1 #draws bricks according to layout for level 1.
+
+	
 main:
-        lw $gp, ADDR_DSPL
+	lw $gp, ADDR_DSPL
         lw $s1, ADDR_KBRD
         #lw $s2, PADDLE:
         #lw $s3, BALL:
-        addi $t0, $t0, 1 #i = 1
+        addi $t0, $0, 1 #i = 1
         addi $t5, $t5, 27
         addi $t2, $gp, 768 #offset gp by 768 to reach the start of the grey lne.
         addi $t3, $gp, 892 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
@@ -135,6 +292,7 @@ vwall_loop:
     	addi $t3 $t3, 128
     	addi $t0, $t0, 1 #i + 1
     	j vwall_loop 
+    	
 hwall_loop_setup:
 	addi $t2, $gp, 768 #set up horizontal line. t2 keeps track of pixels.
 	li $t0, 0 #reset t0 to be counter for hwall_loop
@@ -154,7 +312,7 @@ paddle_loop_setup:
 	li $t5, 5 #loop limit.
 	li $t1, 0x008000 #color green.
 draw_paddle:
-	beq $t0, $t5, brick_setup1
+	beq $t0, $t5, ball_setup #changed this so that we also draw ball.
  	sw $t1, 0($t2) #make pixel green
  	addi $t2, $t2, 4 #update pixel position
  	addi $t0, $t0, 1 
@@ -163,11 +321,11 @@ draw_paddle:
 brick_setup1:
 	li $t3, 0 #setup variable so we can go through each brick color/line. Saves lines.
 brick_setup:
-	addi $t3, $t3, 1
+	addi $t3, $t3, 1 
 	beq $t3, 1, red_brick_setup
 	beq $t3, 2, orange_brick_setup
 	beq $t3, 3, yellow_brick_setup
-	j ball_setup
+	j start_game
  
 red_brick_setup:
 	li $t1, 0x800000
@@ -195,13 +353,13 @@ yellow_brick_setup:
  		
 draw_brick:
 	beq $t0, $t5, brick_setup #choose the color of the brick, set up location of the row to draw it.
-	sw $t7, 0($t2)
-	sw $t1, 4($t2)
-	sw $t1, 8($t2)
-	sw $t1, 12($t2)
-	addi $t0, $t0, 1
-	addi $t2, $t2, 16
- 	j draw_brick
+	sw $t1, 4($t2) #t2 stores the index of the black brick before the brick. So we store the color in the index after it. 
+	#t1 is decided in the "color"_brick_setup. 
+	sw $t1, 8($t2) #second pixel of brick.
+	sw $t1, 12($t2) #third pixel of the break
+	addi $t0, $t0, 1 # add 1 to the loop index to build next brick
+	addi $t2, $t2, 16 #change t2 to be the black pixel after the brick
+ 	j draw_brick #repeat
 	 
  
 ball_setup:
@@ -209,7 +367,12 @@ ball_setup:
 	sw $t1, 3900($gp) #draw ball at starting location
 	addi $s3, $gp, 3900 #write ball starting location into the tracking register
 	li $s4, -128 #Set ball default direction to straight up
-	
+	jr $ra #changed this because we are actually in a function call by the draw_level statements.
+
+start_game:
+	lw $t7, 0($s1) # Pull address of keyboard input
+	beq $t7, 1, keyboard_input # Has input happened? If so, is it a movement>? if so, move paddle and start the game. 
+	j start_game #
 game_loop:
 	# Check to see if player has lost
 	bge $s3, 0x10008FFC player_lost
@@ -553,8 +716,57 @@ break_from_right:
 	###################**** BRICK BREAKING ANIMATION DONE ****###################
 stop_break:
 	jr $ra # Leave
+
+
+brick_setup2:
+	la $t6, 0($ra) #store the return address. This is because this is actually a function call within a function call. 
+	addi $a0, $gp, 908 #start pixel of first row. 
+	li $a1, 0x800000 #handle red bricks..
+	jal draw_2
+	li $a1, 0xffa5000 #Orange bricks.
+	addi $a0, $gp, 1048 
+	jal draw_2
+	li $a1, 0xffff00 # Yellow bricks
+	addi $a0, $gp, 932
+	jal draw_2
+	li $a1, 0x000080 #blue bricks. Maybe later change the color>
+	addi $a0, $gp, 1072
+	jal draw_2
+	li $a1, 0x808080 #handle unbreakable bricks, which are grey.
+	addi $a0, $gp, 1420
+	jal draw_unbreakable_setup #setup the loop to draw the unbreakable bricks.
+	la $ra, 0($t6) #restore the return address  to return to draw_level.
+	jr $ra
 	
+draw_2: #draw_2 is a function. It takes in two inputs. a1 and a0. a0 is the start location of the first brick of the color stored in a1. 
+	sw $a1, 0($a0) #these three lines draw the brick at the first position.
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 48($a0) #these three lines draw the bricks second occurence on the same line.
+	sw $a1, 52($a0)
+	sw $a1, 56($a0)
+	sw $a1, 256($a0) #these three lines draw the bricks first occurence two lines below.
+	sw $a1, 260($a0)
+	sw $a1, 264($a0)
+	sw $a1, 304($a0) #these three lines draw the bricks second occurence two lines below.
+	sw $a1, 308($a0)
+	sw $a1, 312($a0)
+	jr $ra #return to where called in brick_setup2
+
+draw_unbreakable_setup:
+	addi $t0, $0, 0 #i = 0
+	addi $t5, $0, 4 # limit is 4 bricks.
+	j draw_unbreakable
 	
+draw_unbreakable:
+	beq $t0, $t5, return#choose the color of the brick, set up location of the row to draw it.
+	sw $a1, 4($a0) #t2 stores the index of the black brick before the brick. So we store the color in the index after it. 
+	#t1 is decided in the "color"_brick_setup. 
+	sw $a1, 8($a0) #second pixel of brick.
+	sw $a1, 12($a0) #third pixel of the break
+	addi $t0, $t0, 1 # add 1 to the loop index to build next brick
+	addi $a0, $a0, 28 #change t2 to be the black pixel after the brick
+ 	j draw_unbreakable #repeat
 	
 error:
 	li $v0, 4
