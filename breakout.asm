@@ -60,7 +60,8 @@ ERROR_OUT:
     .asciiz "ERROR! SOMETHING BROKE!"
 GAME_OVER:
     .asciiz "GAME OVER!"
-
+RETRY_TEXT:
+	.asciiz "Press_r_to_return_to_level_select:"
 
 
 
@@ -106,10 +107,13 @@ GAME_OVER:
 	.text
 	.globl main
 
-
-start_screen:
+start:
 	lw $gp, ADDR_DSPL
         lw $s1, ADDR_KBRD
+
+start_screen:
+	
+        jal black_screen
         j draw_menu
         
 draw_menu: #this is sort of self explanatory. a0 is used as starting pixel for each letter. a1 stores the color.
@@ -135,6 +139,16 @@ draw_menu: #this is sort of self explanatory. a0 is used as starting pixel for e
 	addi $t0, $gp, 1856
 	sw $a1, 128($t0)
 	sw $a1, 384($t0)
+	addi $a0, $gp, 2572
+	jal draw_1
+	addi $a0, $gp, 2600
+	jal draw_O
+	addi $a0, $gp, 2620
+	jal draw_R
+	addi $a0, $gp, 2660
+	jal draw_2
+	
+	
 	#addi $a0, $gp, 1096
 	#jal draw_S
 	j menu
@@ -153,6 +167,23 @@ black_loop:
 	addi $t2, $t2, 4 #next pixel.
 	j black_loop
 return: #use this to exit function whenever your function is a loop.
+	jr $ra
+
+draw_R:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 12($a0)
+	sw $a1, 140($a0)
+	sw $a1, 268($a0)
+	sw $a1, 264($a0)
+	sw $a1, 260($a0)
+	sw $a1, 392($a0)
+	sw $a1, 524($a0)
 	jr $ra
 draw_C: #function. Used to color C. Not much to say. 
 	sw $a1, 0($a0)
@@ -236,12 +267,36 @@ draw_L:
 	jr $ra
 
 draw_V: #this one is weird. Idk how to draw it other than what I did.
+	sw $a1, 128($a0)
 	sw $a1, 256($a0)
 	sw $a1, 388($a0)
 	sw $a1, 520($a0)
 	sw $a1, 396($a0)
 	sw $a1, 272($a0)
+	sw $a1, 144($a0)
 	jr $ra
+	
+draw_1:
+	sw $a1, 0($a0)
+	sw $a1, 128($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	jr $ra
+
+draw_2:
+	sw $a1, 0($a0)
+	sw $a1, 4($a0)
+	sw $a1, 8($a0)
+	sw $a1, 136($a0)
+	sw $a1, 264($a0)
+	sw $a1, 260($a0)
+	sw $a1, 256($a0)
+	sw $a1, 384($a0)
+	sw $a1, 512($a0)
+	sw $a1, 516($a0)
+	sw $a1, 520($a0)	
+
 menu: #start of the game. Loops until we pick a level.
 	lw $t7, 0($s1)
 	beq $t7, 1, pick_level
@@ -265,14 +320,12 @@ draw_level_1:
 
 	
 main:
-	lw $gp, ADDR_DSPL
-        lw $s1, ADDR_KBRD
         #lw $s2, PADDLE:
         #lw $s3, BALL:
-        addi $t0, $0, 1 #i = 1
-        addi $t5, $t5, 27
-        addi $t2, $gp, 768 #offset gp by 768 to reach the start of the grey lne.
-        addi $t3, $gp, 892 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
+        addi $t0, $0, 0 #i = 1
+        addi $t5, $t5, 32
+        addi $t2, $gp, 0#offset gp by 768 to reach the start of the grey lne.
+        addi $t3, $gp, 124 #offset to reach the right side of the screen on the same line. 892-768= 124. Screen is 128 memory addresses wide.
         li $t1, 0x808080 #use t1 to store grey.
     
 vwall_loop:
@@ -285,7 +338,7 @@ vwall_loop:
     	j vwall_loop 
     	
 hwall_loop_setup:
-	addi $t2, $gp, 768 #set up horizontal line. t2 keeps track of pixels.
+	addi $t2, $gp, 0 #set up horizontal line. t2 keeps track of pixels.
 	li $t0, 0 #reset t0 to be counter for hwall_loop
 	li $t5, 32 #limit for hwall_loop
 	
@@ -316,12 +369,13 @@ brick_setup:
 	beq $t3, 1, red_brick_setup
 	beq $t3, 2, orange_brick_setup
 	beq $t3, 3, yellow_brick_setup
+	beq $t3, 4, blue_brick_setup
 	j start_game
  
 red_brick_setup:
 	li $t1, 0x800000
  	li $t7, 0x000000
- 	addi $t2, $gp, 900
+ 	addi $t2, $gp, 136
  	li $t0, 0
  	li $t5, 7
  	j draw_brick
@@ -329,7 +383,7 @@ red_brick_setup:
 orange_brick_setup:
 	li $t1, 0xffa5000
  	li $t7, 0x000000
- 	addi $t2, $gp, 1028
+ 	addi $t2, $gp, 264
  	li $t0, 0
  	li $t5, 7
  	j draw_brick
@@ -337,11 +391,19 @@ orange_brick_setup:
 yellow_brick_setup:
 	li $t1, 0xffff000
  	li $t7, 0x000000
- 	addi $t2, $gp, 1156
+ 	addi $t2, $gp, 392
  	li $t0, 0
  	li $t5, 7
  	j draw_brick	
- 		
+
+blue_brick_setup:
+	li $t1, 0x000080
+ 	li $t7, 0x000000
+ 	addi $t2, $gp, 520
+ 	li $t0, 0
+ 	li $t5, 7
+ 	j draw_brick	
+ 		 		
 draw_brick:
 	beq $t0, $t5, brick_setup #choose the color of the brick, set up location of the row to draw it.
 	sw $t1, 4($t2) #t2 stores the index of the black brick before the brick. So we store the color in the index after it. 
@@ -427,15 +489,27 @@ respond_to_p: #pause the game
 unpause_game:
 	lw $t7, 4($s1)
 	beq $t7, 0x70, game_loop
+	beq $t7, 0x72, start_screen
 	j respond_to_p
 	
 player_lost:
 	li $v0, 4 # Set operation to print string
 	la $a0, GAME_OVER # String to print
 	syscall # Actually print the string
-	li $v0, 10 # Set operation to close game
-	syscall # Actually close game
-	
+	li $v0, 4 # Set operation to print string
+	la $a0, RETRY_TEXT# String to print
+	syscall # Actually print the string
+	j wait_for_r
+
+wait_for_r:
+	lw $t7, 0($s1)
+	beq $t7, 1, retry
+	j wait_for_r
+
+retry:
+	lw $t7, 4($s1)
+	beq $t7, 0x72, start_screen
+	j wait_for_r
 
 
 
@@ -715,25 +789,33 @@ stop_break:
 
 brick_setup2:
 	la $t6, 0($ra) #store the return address. This is because this is actually a function call within a function call. 
-	addi $a0, $gp, 908 #start pixel of first row. 
+	addi $a0, $gp, 136 #start pixel of first row. 
 	li $a1, 0x800000 #handle red bricks..
-	jal draw_2
+	jal draw_l2
+	addi $a0, $gp, 776
+	jal draw_l2
 	li $a1, 0xffa5000 #Orange bricks.
-	addi $a0, $gp, 1048 
-	jal draw_2
+	addi $a0, $gp, 276 
+	jal draw_l2
+	addi $a0, $gp, 916
+	jal draw_l2
 	li $a1, 0xffff00 # Yellow bricks
-	addi $a0, $gp, 932
-	jal draw_2
+	addi $a0, $gp, 160
+	jal draw_l2
+	addi $a0, $gp, 800
+	jal draw_l2
 	li $a1, 0x000080 #blue bricks. Maybe later change the color>
-	addi $a0, $gp, 1072
-	jal draw_2
+	addi $a0, $gp, 300
+	jal draw_l2
+	addi $a0, $gp, 940
+	jal draw_l2
 	li $a1, 0x808080 #handle unbreakable bricks, which are grey.
-	addi $a0, $gp, 1420
+	addi $a0, $gp, 652
 	jal draw_unbreakable_setup #setup the loop to draw the unbreakable bricks.
 	la $ra, 0($t6) #restore the return address  to return to draw_level.
 	jr $ra
 	
-draw_2: #draw_2 is a function. It takes in two inputs. a1 and a0. a0 is the start location of the first brick of the color stored in a1. 
+draw_l2: #draw_l2 is a function. It takes in two inputs. a1 and a0. a0 is the start location of the first brick of the color stored in a1. 
 	sw $a1, 0($a0) #these three lines draw the brick at the first position.
 	sw $a1, 4($a0)
 	sw $a1, 8($a0)
